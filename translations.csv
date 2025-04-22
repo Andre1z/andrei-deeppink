@@ -1,0 +1,26 @@
+key,english,spanish,french,german
+login_page_title,Login - DeepPink Dashboard,Iniciar sesión - DeepPink Dashboard,Connexion - DeepPink Dashboard,Anmelden - DeepPink Dashboard
+login_title,Login,Iniciar sesión,Connexion,Anmelden
+username_placeholder,Username,Nombre de usuario,Nom d'utilisateur,Benutzername
+password_placeholder,Password,Contraseña,Mot de passe,Passwort
+select_language,Select Language,Selecciona idioma,Sélectionner la langue,Sprache wählen
+login_button,Login,Iniciar sesión,Connexion,Anmelden
+invalid_credentials,Invalid credentials!,¡Credenciales inválidas!,Identifiants invalides!,Ungültige Anmeldeinformationen!
+dashboard_title,DeepPink Dashboard,DeepPink Dashboard,DeepPink Dashboard,DeepPink Dashboard
+welcome_message,Corporate Information,Información Corporativa,Informations d'entreprise,Unternehmensinformationen
+dashboard_subtitle,DeepPink Dashboard – Manage Your Reports,DeepPink Dashboard – Gestiona tus informes,DeepPink Dashboard – Gérez vos rapports,DeepPink Dashboard – Berichte verwalten
+logout,Logout,Cerrar sesión,Déconnexion,Abmelden
+create_report,Create New Report,Crear nuevo informe,Créer un nouveau rapport,Neuen Bericht erstellen
+view_reports,View Reports,Ver informes,Voir les rapports,Berichte anzeigen
+generated_report,Generated Report,Informe generado,Rapport généré,Erstellter Bericht
+save_report,Save Report,Guardar informe,Enregistrer le rapport,Bericht speichern
+enter_url,Enter URL to analyze:,Introduce la URL a analizar:,Entrez l'URL à analyser:,Geben Sie die zu analysierende URL ein:
+back_to_reports,« Back to Reports,« Volver a informes,« Retour aux rapports,« Zurück zu den Berichten
+site_title,Site Title,Título del sitio,Titre du site,Seitentitel
+site_description,Site Description,Descripción del sitio,Description du site,Seitentext
+heading_tag,H%d Headings,Etiquetas de tipo H%d,Balises H%d,H%d Überschriften
+frequent_words,Most Frequent Words (excluding stopwords, script and style content),Palabras más frecuentes (sin stopwords ni contenido de script/style),Mots les plus fréquents (hors stopwords, script et style),Häufigste Wörter (ohne Stoppwörter, Script und Style)
+word_cloud,Word Cloud,La nube de palabras,Nuage de mots,Wortwolke
+no_reports,No reports saved yet.,No hay informes guardados,Aucun rapport sauvegardé,Keine Berichte gespeichert
+robots_txt,Robots.txt,Robots.txt,Robots.txt,Robots.txt
+sitemap_xml,Sitemap.xml,Sitemap.xml,Sitemap.xml,Sitemap.xml
