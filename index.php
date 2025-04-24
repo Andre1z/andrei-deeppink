@@ -75,8 +75,8 @@ if (!isset($_SESSION['loggedin'])) {
           max-width: 300px;
           margin: 30px auto;
           padding: 20px;
-          background: #fff;
-          border: 1px solid #ddd;
+          background: #5d84eb;
+          /*border: 1px solid #ddd;*/
           box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .login-container h2 {
@@ -95,7 +95,7 @@ if (!isset($_SESSION['loggedin'])) {
         .login-container input[type="submit"] {
           width: 100%;
           padding: 10px;
-          background: #0073aa;
+          background: #22b74a;
           color: #fff;
           border: none;
           border-radius: 4px;
@@ -204,7 +204,7 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
       padding: 0;
     }
     #dashboard-header {
-      background: #23282d;
+      background:rgb(34, 93, 153);
       color: #fff;
       padding: 10px 20px;
       display: flex;
@@ -214,6 +214,7 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
     #dashboard-header h1 {
       margin: 0;
       font-size: 24px;
+      color:white;
     }
     #dashboard-header p {
       margin: 0;

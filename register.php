@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       max-width: 300px;
       margin: 30px auto;
       padding: 20px;
-      background: #fff;
+      background: #5d84eb;
       border: 1px solid #ddd;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .login-container input[type="submit"] {
       width: 100%;
       padding: 10px;
-      background: #0073aa;
+      background: #22b74a;
       color: #fff;
       border: none;
       border-radius: 4px;
