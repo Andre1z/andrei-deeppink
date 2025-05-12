@@ -3,22 +3,22 @@
  * index.php
  *
  * Página principal de la aplicación.
- * Gestiona el login de usuarios, la generación de reportes de auditoría web (por medio de la clase DeepPink)
+ * Gestiona el login de usuarios, la generación de reportes de auditoría web (utilizando la clase DeepPink)
  * y la visualización/eliminación de reportes guardados.
  *
- * Se verifica la contraseña de forma segura usando password_verify().
- * Los estilos se cargan desde "css/style.css".
+ * Se utiliza un archivo externo 'authenticateUser.php' para centralizar la verificación
+ * de las credenciales de usuario (usando password_verify()). Todos los estilos se cargan desde "css/style.css".
  */
 
 session_start();
 require_once 'i18n.php';
 
 try {
-    // Conexión a la base de datos SQLite e inicialización de las tablas necesarias.
+    // Conexión a la base de datos SQLite; se crean las tablas si no existen.
     $pdo = new PDO('sqlite:db.sqlite');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Tabla de usuarios.
+    // Creación de la tabla de usuarios.
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -28,7 +28,7 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // Tabla de reportes.
+    // Creación de la tabla de reportes.
     $pdo->exec("CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -41,7 +41,7 @@ try {
 }
 
 /**
- * Proceso de cierre de sesión: se limpia la sesión y se redirige al login.
+ * Proceso de cierre de sesión.
  */
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     unset($_SESSION['logged_in']);
@@ -52,9 +52,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 
 /**
- * Proceso de autenticación:
- * Si el usuario no ha iniciado sesión, se muestra el formulario de login.
- * Se utiliza password_verify() para validar la contraseña de forma segura.
+ * Proceso de autenticación.
+ * Si el usuario aún no ha iniciado sesión, se muestra el formulario de login.
+ * Se utiliza la función authenticateUser() definida en el archivo authenticateUser.php.
  */
 if (!isset($_SESSION['logged_in'])) {
     if (isset($_POST['login'])) {
@@ -62,24 +62,23 @@ if (!isset($_SESSION['logged_in'])) {
         $loginPass = trim($_POST['password']);
         if (isset($_POST['lang'])) {
             $_SESSION['language'] = $_POST['lang'];
-            require_once 'i18n.php';
+            require_once 'i18n.php'; // Actualiza el idioma activo si fuera necesario.
         }
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username");
-        $stmt->execute([':username' => $loginUser]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Verifica la contraseña usando password_verify().
-        if ($user && password_verify($loginPass, $user['password'])) {
+        require_once 'authenticateUser.php';
+        $user = authenticateUser($loginUser, $loginPass);
+        if ($user) {
+            // Las credenciales son válidas: se guarda la información en la sesión.
             $_SESSION['logged_in'] = true;
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             header("Location: index.php");
             exit;
         } else {
+            // La función authenticateUser ya imprime el error, pero asignamos una variable para usarla en el formulario.
             $loginError = __('invalid_credentials');
         }
     } else {
-        // Mostrar formulario de login.
+        // No se ha enviado el formulario: se muestra el login.
         ?>
         <!doctype html>
         <html>
@@ -113,7 +112,7 @@ if (!isset($_SESSION['logged_in'])) {
     }
 }
 
-// Se asigna el user_id desde la sesión garantizando su existencia.
+// Se recupera el user_id desde la sesión (usando el operador null coalescing para evitar warnings).
 $userId = $_SESSION['user_id'] ?? 0;
 
 /**
@@ -129,7 +128,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
 
 /**
  * Proceso de generación de reportes.
- * Se utiliza la clase DeepPink para analizar la URL proporcionada y construir el reporte.
+ * Se utiliza la clase DeepPink para analizar la URL dada por el usuario y construir un reporte.
  */
 if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') {
     require_once 'DeepPink.php';
@@ -178,6 +177,7 @@ $allStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid ORDER BY cr
 $allStmt->execute([':uid' => $userId]);
 $allReports = $allStmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Se determina la pestaña activa (por defecto, "new_report").
 $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
 ?>
 <!doctype html>
@@ -188,6 +188,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Cabecera del Dashboard -->
     <header id="dashboard-header">
         <div class="header-left">
             <h1><?php echo __('welcome_message'); ?></h1>
@@ -197,13 +198,16 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
             <a href="index.php?action=logout"><?php echo __('logout'); ?></a>
         </div>
     </header>
+    <!-- Contenedor principal de la aplicación -->
     <div id="dashboard-container">
+        <!-- Menú lateral -->
         <nav id="dashboard-nav">
             <ul>
                 <li><a href="index.php?tab=new_report"><?php echo __('create_report'); ?></a></li>
                 <li><a href="index.php?tab=view_reports"><?php echo __('view_reports'); ?></a></li>
             </ul>
         </nav>
+        <!-- Sección principal de contenido -->
         <main id="dashboard-content">
             <?php
             if (isset($reportFeedback)) {
@@ -245,7 +249,8 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                         echo "</tr>";
                     }
                     echo "</table>";
-                    
+
+                    // Vista detallada para una URL específica.
                     if (isset($_GET['url'])) {
                         $targetUrl = $_GET['url'];
                         $detailStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid AND url = :url ORDER BY created_at DESC");
@@ -274,6 +279,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     echo "<p>" . __('no_reports') . "</p>";
                 }
             }
+            // Vista detallada de un reporte individual.
             if (isset($_GET['action']) && $_GET['action'] === 'view' && isset($_GET['id'])) {
                 $repId = intval($_GET['id']);
                 $stmtRep = $pdo->prepare("SELECT * FROM reports WHERE id = :id AND user_id = :uid");
@@ -285,6 +291,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     echo $singleReport['report_html'];
                 }
             }
+            // Vista de impresión: se abre en nueva ventana y se dispara window.print().
             if (isset($_GET['action']) && $_GET['action'] === 'print' && isset($_GET['id'])) {
                 $repId = intval($_GET['id']);
                 $stmtPrint = $pdo->prepare("SELECT * FROM reports WHERE id = :id AND user_id = :uid");
@@ -306,9 +313,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                             }
                         </style>
                         <script>
-                            window.onload = function() {
-                                window.print();
-                            };
+                            window.onload = function() { window.print(); };
                         </script>
                     </head>
                     <body>
