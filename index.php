@@ -86,7 +86,7 @@ if (!isset($_SESSION['logged_in'])) {
         <head>
             <meta charset="utf-8">
             <title><?php echo __('login_page_title'); ?></title>
-            <link rel="stylesheet" href="css/index.css">
+            <link rel="stylesheet" href="css/style.css">
         </head>
         <body>
             <div class="login-panel">
@@ -184,7 +184,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
 <head>
     <meta charset="utf-8">
     <title><?php echo __('dashboard_title'); ?></title>
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <!-- Cabecera del panel -->
@@ -303,7 +303,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     <head>
                         <meta charset="utf-8">
                         <title><?php echo __('generated_report'); ?></title>
-                        <link rel="stylesheet" href="css/index.css">
+                        <link rel="stylesheet" href="css/style.css">
                         <style>
                             @media print {
                                 body * {
