@@ -3,20 +3,23 @@
  * index.php
  *
  * Página principal de la aplicación.
- * Gestiona el login de usuarios, la creación de reportes de auditoría web (usando la clase DeepPink)
- * y la visualización y eliminación de reportes almacenados.
+ * Gestiona el login de usuarios, la generación de reportes de auditoría web (usando la clase DeepPink),
+ * así como la visualización y eliminación de reportes almacenados.
  *
- * Todos los estilos visuales se cargan desde "css/index.css".
+ * Todos los estilos visuales se cargan desde "css/style.css".
+ *
+ * NOTA: Para evitar warnings de "Undefined array key 'user_id'", se utiliza el operador null coalescing (??)
+ * al referenciar $_SESSION['user_id'].
  */
 
 session_start();
 require_once 'i18n.php';
 
 try {
-    // Conexión a la base de datos SQLite y creación de tablas necesarias.
+    // Conexión a la base de datos SQLite y creación de tablas si no existen.
     $pdo = new PDO('sqlite:db.sqlite');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
+    
     // Tabla de usuarios.
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,12 +39,11 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 } catch (PDOException $e) {
-    die("Error al conectar o inicializar la base de datos: " . $e->getMessage());
+    die("Error al inicializar la base de datos: " . $e->getMessage());
 }
 
 /**
- * Cierre de sesión:
- * Si se detecta la acción 'logout', se limpian las variables de sesión y se redirige al login.
+ * Proceso de cierre de sesión.
  */
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     unset($_SESSION['logged_in']);
@@ -52,12 +54,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 
 /**
- * Proceso de autenticación:
+ * Proceso de autenticación.
  * Si el usuario no ha iniciado sesión, se muestra el formulario de login.
- * También se permite cambiar el idioma desde el listado de opciones.
  */
 if (!isset($_SESSION['logged_in'])) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    if (isset($_POST['login'])) {
         $loginUser = trim($_POST['username']);
         $loginPass = trim($_POST['password']);
         if (isset($_POST['lang'])) {
@@ -68,10 +69,10 @@ if (!isset($_SESSION['logged_in'])) {
         $stmt->execute([':username' => $loginUser]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Se compara la contraseña (en este ejemplo en texto plano).
+        // Se compara la contraseña (en este ejemplo, en texto plano).
         if ($user && $user['password'] === $loginPass) {
             $_SESSION['logged_in'] = true;
-            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_id'] = $user['id'];  // Aquí se define la clave user_id.
             $_SESSION['username'] = $user['username'];
             header("Location: index.php");
             exit;
@@ -79,7 +80,7 @@ if (!isset($_SESSION['logged_in'])) {
             $loginError = __('invalid_credentials');
         }
     } else {
-        // Mostrar formulario de login si no hay envío.
+        // Muestra el formulario de login si no hay envío.
         ?>
         <!doctype html>
         <html>
@@ -113,21 +114,23 @@ if (!isset($_SESSION['logged_in'])) {
     }
 }
 
+// Para evitar los warnings, se asigna un valor predeterminado usando el operador ??
+$userId = $_SESSION['user_id'] ?? 0;
+
 /**
- * Eliminación de reportes:
- * Si se recibe 'action=delete' y se especifica el ID del reporte,
- * se elimina de la base de datos (comprobando además que el reporte pertenezca al usuario).
+ * Proceso de eliminación de reportes.
  */
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $reportId = intval($_GET['id']);
     $deleteStmt = $pdo->prepare("DELETE FROM reports WHERE id = :id AND user_id = :uid");
-    $deleteStmt->execute([':id' => $reportId, ':uid' => $_SESSION['user_id']]);
+    // Uso de $userId que se garantiza no lanza warning.
+    $deleteStmt->execute([':id' => $reportId, ':uid' => $userId]);
     header("Location: index.php?tab=view_reports");
     exit;
 }
 
 /**
- * Generación del reporte:
+ * Generación del reporte.
  * Si se envía el formulario con 'report_action' igual a 'gen_report', se utiliza la clase DeepPink.
  */
 if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') {
@@ -135,7 +138,6 @@ if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') 
     $inputUrl = trim($_POST['url']);
     $reporter = new DeepPink($inputUrl);
 
-    // Se inicia el búfer para capturar la salida HTML.
     ob_start();
     echo "<table class='report-table'>";
         $reporter->displayPageTitle();
@@ -152,11 +154,10 @@ if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') 
     echo "</table>";
     $generatedReport = ob_get_clean();
 
-    // Si se opta por guardar el reporte.
     if (isset($_POST['save_report']) && $_POST['save_report'] === '1') {
         $saveStmt = $pdo->prepare("INSERT INTO reports (user_id, url, report_html) VALUES (:uid, :url, :report)");
         $saveStmt->execute([
-            ':uid' => $_SESSION['user_id'],
+            ':uid' => $userId,
             ':url' => $inputUrl,
             ':report' => $generatedReport
         ]);
@@ -165,18 +166,17 @@ if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') 
 }
 
 /**
- * Consulta de reportes:
- * Se agrupan los reportes guardados por URL, y se recupera la lista completa de reportes.
+ * Consulta de reportes agrupados.
  */
 $groupStmt = $pdo->prepare("SELECT url, COUNT(*) AS total, MAX(created_at) AS last_date FROM reports WHERE user_id = :uid GROUP BY url ORDER BY last_date DESC");
-$groupStmt->execute([':uid' => $_SESSION['user_id']]);
+$groupStmt->execute([':uid' => $userId]);
 $reportsSummary = $groupStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $allStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid ORDER BY created_at DESC");
-$allStmt->execute([':uid' => $_SESSION['user_id']]);
+$allStmt->execute([':uid' => $userId]);
 $allReports = $allStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Determinamos la pestaña activa ('new_report' o 'view_reports'). Por defecto, "new_report".
+// Pestaña activa: por defecto 'new_report'.
 $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
 ?>
 <!doctype html>
@@ -187,7 +187,6 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Cabecera del panel -->
     <header id="dashboard-header">
         <div class="header-left">
             <h1><?php echo __('welcome_message'); ?></h1>
@@ -197,16 +196,13 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
             <a href="index.php?action=logout"><?php echo __('logout'); ?></a>
         </div>
     </header>
-    <!-- Contenedor principal del Dashboard -->
     <div id="dashboard-container">
-        <!-- Menú lateral -->
         <nav id="dashboard-nav">
             <ul>
                 <li><a href="index.php?tab=new_report"><?php echo __('create_report'); ?></a></li>
                 <li><a href="index.php?tab=view_reports"><?php echo __('view_reports'); ?></a></li>
             </ul>
         </nav>
-        <!-- Sección de contenido -->
         <main id="dashboard-content">
             <?php
             if (isset($reportFeedback)) {
@@ -249,11 +245,10 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     }
                     echo "</table>";
 
-                    // Vista detallada si se especifica la URL.
                     if (isset($_GET['url'])) {
                         $targetUrl = $_GET['url'];
                         $detailStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid AND url = :url ORDER BY created_at DESC");
-                        $detailStmt->execute([':uid' => $_SESSION['user_id'], ':url' => $targetUrl]);
+                        $detailStmt->execute([':uid' => $userId, ':url' => $targetUrl]);
                         $detailedReports = $detailStmt->fetchAll(PDO::FETCH_ASSOC);
                         if ($detailedReports) {
                             echo "<h3>" . __('reports_for') . " " . htmlspecialchars($targetUrl) . "</h3>";
@@ -278,11 +273,10 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     echo "<p>" . __('no_reports') . "</p>";
                 }
             }
-            // Vista detallada de un reporte único (triggered by action=view).
             if (isset($_GET['action']) && $_GET['action'] === 'view' && isset($_GET['id'])) {
                 $repId = intval($_GET['id']);
                 $stmtRep = $pdo->prepare("SELECT * FROM reports WHERE id = :id AND user_id = :uid");
-                $stmtRep->execute([':id' => $repId, ':uid' => $_SESSION['user_id']]);
+                $stmtRep->execute([':id' => $repId, ':uid' => $userId]);
                 $singleReport = $stmtRep->fetch(PDO::FETCH_ASSOC);
                 if ($singleReport) {
                     echo "<h2>" . __('generated_report') . "</h2>";
@@ -290,11 +284,10 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     echo $singleReport['report_html'];
                 }
             }
-            // Vista de impresión: se abre en una nueva ventana y se dispara window.print().
             if (isset($_GET['action']) && $_GET['action'] === 'print' && isset($_GET['id'])) {
                 $repId = intval($_GET['id']);
                 $stmtPrint = $pdo->prepare("SELECT * FROM reports WHERE id = :id AND user_id = :uid");
-                $stmtPrint->execute([':id' => $repId, ':uid' => $_SESSION['user_id']]);
+                $stmtPrint->execute([':id' => $repId, ':uid' => $userId]);
                 $printReport = $stmtPrint->fetch(PDO::FETCH_ASSOC);
                 if ($printReport) {
                     ?>
@@ -306,24 +299,13 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                         <link rel="stylesheet" href="css/style.css">
                         <style>
                             @media print {
-                                body * {
-                                    visibility: hidden;
-                                }
-                                .printable, .printable * {
-                                    visibility: visible;
-                                }
-                                .printable {
-                                    position: absolute;
-                                    left: 0;
-                                    top: 0;
-                                    width: 100%;
-                                }
+                                body * { visibility: hidden; }
+                                .printable, .printable * { visibility: visible; }
+                                .printable { position: absolute; left: 0; top: 0; width: 100%; }
                             }
                         </style>
                         <script>
-                            window.onload = function() {
-                                window.print();
-                            };
+                            window.onload = function() { window.print(); };
                         </script>
                     </head>
                     <body>
