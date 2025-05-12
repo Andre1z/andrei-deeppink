@@ -2,27 +2,29 @@
 /**
  * admin.php
  *
- * Panel de administración para gestionar usuarios y reportes.
- * Permite el inicio de sesión para el usuario administrador, así como la visualización,
- * edición y eliminación de registros.
+ * Panel de administración para la gestión de usuarios y reportes.
+ * Solo el usuario "andrei" se puede autenticar como administrador.
+ * En esta versión, todo el estilo se carga desde "css/admin.css".
  *
- * NOTA: La autenticación se efectúa únicamente con el usuario "andrei".
+ * Funciones principales:
+ * - Conexión e inicialización de la base de datos (SQLite).
+ * - Proceso de autenticación exclusivo para "andrei".
+ * - Gestión de las acciones: listado, adición, edición y eliminación de usuarios,
+ *   así como la visualización y eliminación de reportes.
+ *
+ * NOTA: Toda la configuración visual se realiza a través del archivo de estilos externo.
  */
 
-// Iniciamos la sesión y cargamos la internacionalización
 session_start();
 require_once 'i18n.php';
 
-/**
- * Conexión con la base de datos SQLite.
- * Se crean las tablas 'users' y 'reports' si aún no existen.
- */
+// Conexión a la base de datos SQLite y creación de tablas si es necesario.
 try {
-    $dbConnection = new PDO('sqlite:db.sqlite');
-    $dbConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Tabla de usuarios
-    $dbConnection->exec("CREATE TABLE IF NOT EXISTS users (
+    $conexionDB = new PDO('sqlite:db.sqlite');
+    $conexionDB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Creación de la tabla de usuarios.
+    $conexionDB->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
@@ -30,42 +32,42 @@ try {
         email TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
-    
-    // Tabla de reportes
-    $dbConnection->exec("CREATE TABLE IF NOT EXISTS reports (
+
+    // Creación de la tabla de reportes.
+    $conexionDB->exec("CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         url TEXT NOT NULL,
         report_html TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
-} catch (PDOException $exception) {
-    die("Error de conexión/Inicialización de BD: " . $exception->getMessage());
+} catch (PDOException $excepcion) {
+    die("Error en la inicialización de la base de datos: " . $excepcion->getMessage());
 }
 
 /**
- * Proceso de autenticación del administrador.
- * Sólo se permite al usuario "jocarsa" ingresar.
+ * Autenticación del usuario administrador.
+ * Si aún no se ha autenticado, se muestra el formulario de acceso.
  */
 if (!isset($_SESSION['admin_authenticated'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login'])) {
-        $inputUsername = trim($_POST['username']);
-        $inputPassword = trim($_POST['password']);
-        
-        // Consulta para localizar al usuario
-        $stmt = $dbConnection->prepare("SELECT * FROM users WHERE username = :username");
-        $stmt->execute([':username' => $inputUsername]);
-        $adminRecord = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Solo se permite si el nombre de usuario es "jocarsa" y la contraseña coincide
-        if ($adminRecord && $inputUsername === 'jocarsa' && $adminRecord['password'] === $inputPassword) {
+        $usuarioIngresado = trim($_POST['username']);
+        $claveIngresada   = trim($_POST['password']);
+
+        // Buscamos el registro del usuario en la base de datos.
+        $consulta = $conexionDB->prepare("SELECT * FROM users WHERE username = :username");
+        $consulta->execute([':username' => $usuarioIngresado]);
+        $registroAdmin = $consulta->fetch(PDO::FETCH_ASSOC);
+
+        // Solo se permite el acceso si el usuario es "jocarsa" y la contraseña es correcta.
+        if ($registroAdmin && $usuarioIngresado === 'jocarsa' && $registroAdmin['password'] === $claveIngresada) {
             $_SESSION['admin_authenticated'] = true;
-            $_SESSION['admin_user'] = $inputUsername;
+            $_SESSION['admin_username'] = $usuarioIngresado;
         } else {
-            $loginError = __('invalid_credentials');
+            $mensajeErrorLogin = __('invalid_credentials');
         }
     } else {
-        // Si no se ha enviado el formulario, mostrar la página de login
+        // Mostrar página de login si no se envió el formulario
         ?>
         <!doctype html>
         <html>
@@ -73,47 +75,11 @@ if (!isset($_SESSION['admin_authenticated'])) {
             <meta charset="utf-8">
             <title><?php echo __('admin_login_title'); ?></title>
             <link rel="stylesheet" href="css/admin.css">
-            <style>
-                /* Estilos embebidos para el formulario de inicio de sesión */
-                .login-box {
-                    max-width: 300px;
-                    margin: 50px auto;
-                    padding: 20px;
-                    background-color: #fff;
-                    border: 1px solid #ccc;
-                    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
-                }
-                .login-box h2 {
-                    text-align: center;
-                    margin-bottom: 15px;
-                }
-                .login-box input[type="text"],
-                .login-box input[type="password"] {
-                    width: 100%;
-                    padding: 10px;
-                    margin: 8px 0;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                }
-                .login-box input[type="submit"] {
-                    width: 100%;
-                    padding: 10px;
-                    background: #0073aa;
-                    border: none;
-                    color: #fff;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-                .error-msg {
-                    color: red;
-                    text-align: center;
-                }
-            </style>
         </head>
         <body>
-            <div class="login-box">
+            <div class="login-container">
                 <h2><?php echo __('admin_login_title'); ?></h2>
-                <?php if(isset($loginError)) echo "<p class='error-msg'>$loginError</p>"; ?>
+                <?php if (isset($mensajeErrorLogin)) { echo "<p class='error'>" . $mensajeErrorLogin . "</p>"; } ?>
                 <form method="post" action="admin.php">
                     <input type="text" name="username" placeholder="<?php echo __('username_placeholder'); ?>" required>
                     <input type="password" name="password" placeholder="<?php echo __('password_placeholder'); ?>" required>
@@ -127,193 +93,158 @@ if (!isset($_SESSION['admin_authenticated'])) {
     }
 }
 
-// Procesamos las acciones dentro del panel de administración
-$actionMode = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
+// Se determina la acción solicitada en el panel.
+$accion = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
 
 /**
- * Proceso de cierre de sesión.
+ * Cierre de sesión del administrador.
  */
-if ($actionMode == 'logout') {
+if ($accion === 'logout') {
     unset($_SESSION['admin_authenticated']);
-    unset($_SESSION['admin_user']);
+    unset($_SESSION['admin_username']);
     header("Location: admin.php");
     exit;
 }
 
 /**
- * Procedimiento para eliminar un usuario.
- * No se permite eliminar al administrador 'jocarsa'.
+ * Eliminación de usuario.
+ * Se impide eliminar al usuario administrador "jocarsa".
  */
-if ($actionMode === 'delete_user' && isset($_GET['id'])) {
-    $userId = intval($_GET['id']);
-    $stmt = $dbConnection->prepare("SELECT username FROM users WHERE id = :id");
-    $stmt->execute([':id' => $userId]);
-    $userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($userInfo && $userInfo['username'] === 'jocarsa') {
-        $errorMsg = "No se puede eliminar el usuario administrador.";
+if ($accion === 'delete_user' && isset($_GET['id'])) {
+    $idUsuario = intval($_GET['id']);
+    $consulta = $conexionDB->prepare("SELECT username FROM users WHERE id = :id");
+    $consulta->execute([':id' => $idUsuario]);
+    $usuarioInfo = $consulta->fetch(PDO::FETCH_ASSOC);
+
+    if ($usuarioInfo && $usuarioInfo['username'] === 'jocarsa') {
+        $errorUsuario = "No se puede eliminar el usuario administrador.";
     } else {
-        $stmt = $dbConnection->prepare("DELETE FROM users WHERE id = :id");
-        $stmt->execute([':id' => $userId]);
+        $eliminar = $conexionDB->prepare("DELETE FROM users WHERE id = :id");
+        $eliminar->execute([':id' => $idUsuario]);
         header("Location: admin.php?action=manage_users");
         exit;
     }
 }
 
 /**
- * Procedimiento para eliminar un reporte.
+ * Eliminación de reporte.
  */
-if ($actionMode === 'delete_report' && isset($_GET['id'])) {
-    $reportId = intval($_GET['id']);
-    $stmt = $dbConnection->prepare("DELETE FROM reports WHERE id = :id");
-    $stmt->execute([':id' => $reportId]);
+if ($accion === 'delete_report' && isset($_GET['id'])) {
+    $idReporte = intval($_GET['id']);
+    $eliminarReporte = $conexionDB->prepare("DELETE FROM reports WHERE id = :id");
+    $eliminarReporte->execute([':id' => $idReporte]);
     header("Location: admin.php?action=manage_reports");
     exit;
 }
 
 /**
- * Si se envía el formulario para crear un nuevo usuario, se inserta en la BD.
+ * Inserción de un nuevo usuario.
  */
-if ($actionMode === 'add_user' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $newUser = trim($_POST['username']);
-    $newPass = trim($_POST['password']);
-    $newName = trim($_POST['name']);
-    $newEmail = trim($_POST['email']);
-    
-    $stmt = $dbConnection->prepare("INSERT INTO users (username, password, name, email) VALUES (:username, :password, :name, :email)");
-    $stmt->execute([
-        ':username' => $newUser,
-        ':password' => $newPass,
-        ':name' => $newName,
-        ':email' => $newEmail
+if ($accion === 'add_user' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nuevoUsuario = trim($_POST['username']);
+    $nuevaClave   = trim($_POST['password']);
+    $nuevoNombre  = trim($_POST['name']);
+    $nuevoEmail   = trim($_POST['email']);
+
+    $insertar = $conexionDB->prepare("INSERT INTO users (username, password, name, email) VALUES (:username, :password, :name, :email)");
+    $insertar->execute([
+        ':username' => $nuevoUsuario,
+        ':password' => $nuevaClave,
+        ':name'     => $nuevoNombre,
+        ':email'    => $nuevoEmail
     ]);
     header("Location: admin.php?action=manage_users");
     exit;
 }
 
 /**
- * Proceso de edición de usuario.
- * Si se ha enviado el formulario, se actualizan los datos; de lo contrario, se recuperan para mostrarlos.
+ * Actualización de la información de un usuario.
+ * Si se envía el formulario, se actualizan los datos;
+ * en caso contrario, se carga la información para su edición.
  */
-if ($actionMode === 'edit_user' && isset($_GET['id'])) {
-    $editUserId = intval($_GET['id']);
+if ($accion === 'edit_user' && isset($_GET['id'])) {
+    $idEditar = intval($_GET['id']);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $updatedUser = trim($_POST['username']);
-        $updatedPass = trim($_POST['password']);
-        $updatedName = trim($_POST['name']);
-        $updatedEmail = trim($_POST['email']);
-        
-        $stmt = $dbConnection->prepare("UPDATE users SET username = :username, password = :password, name = :name, email = :email WHERE id = :id");
-        $stmt->execute([
-            ':username' => $updatedUser,
-            ':password' => $updatedPass,
-            ':name' => $updatedName,
-            ':email' => $updatedEmail,
-            ':id' => $editUserId
+        $usuarioActualizado = trim($_POST['username']);
+        $claveActualizada   = trim($_POST['password']);
+        $nombreActualizado  = trim($_POST['name']);
+        $emailActualizado   = trim($_POST['email']);
+
+        $actualizar = $conexionDB->prepare("UPDATE users SET username = :username, password = :password, name = :name, email = :email WHERE id = :id");
+        $actualizar->execute([
+            ':username' => $usuarioActualizado,
+            ':password' => $claveActualizada,
+            ':name'     => $nombreActualizado,
+            ':email'    => $emailActualizado,
+            ':id'       => $idEditar
         ]);
         header("Location: admin.php?action=manage_users");
         exit;
     } else {
-        $stmt = $dbConnection->prepare("SELECT * FROM users WHERE id = :id");
-        $stmt->execute([':id' => $editUserId]);
-        $userToEdit = $stmt->fetch(PDO::FETCH_ASSOC);
+        $consultaEditar = $conexionDB->prepare("SELECT * FROM users WHERE id = :id");
+        $consultaEditar->execute([':id' => $idEditar]);
+        $usuarioEditar = $consultaEditar->fetch(PDO::FETCH_ASSOC);
     }
 }
+
 ?>
+
 <!doctype html>
 <html>
 <head>
     <meta charset="utf-8">
     <title><?php echo __('admin_dashboard_title'); ?></title>
+    <!-- Se utiliza exclusivamente el CSS externo para admin.php -->
     <link rel="stylesheet" href="css/admin.css">
-    <style>
-        /* Estilos básicos para el panel de administración */
-        #headerPanel {
-            background: #23282d;
-            color: #fff;
-            padding: 15px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #navPanel {
-            width: 220px;
-            background: #32373c;
-            color: #fff;
-            padding: 20px;
-        }
-        #navPanel ul {
-            list-style: none;
-            padding: 0;
-        }
-        #navPanel ul li {
-            margin-bottom: 15px;
-        }
-        #navPanel ul li a {
-            color: #fff;
-            text-decoration: none;
-        }
-        #mainContent {
-            flex-grow: 1;
-            padding: 20px;
-            background: #fff;
-        }
-        .dataTable {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .dataTable th, .dataTable td {
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-    </style>
 </head>
 <body>
-<div id="headerPanel">
-    <h1><?php echo __('admin_dashboard_title'); ?></h1>
-    <div>
-        <a href="admin.php?action=logout" style="color: #fff;"><?php echo __('logout'); ?></a>
-    </div>
-</div>
-<div style="display: flex;">
-    <div id="navPanel">
+    <!-- Cabecera del panel de administración -->
+    <header id="admin-header">
+        <h1><?php echo __('admin_dashboard_title'); ?></h1>
+        <nav>
+            <a href="admin.php?action=logout"><?php echo __('logout'); ?></a>
+        </nav>
+    </header>
+    
+    <!-- Menú de navegación lateral -->
+    <aside id="admin-nav">
         <ul>
             <li><a href="admin.php?action=manage_users"><?php echo __('manage_users'); ?></a></li>
             <li><a href="admin.php?action=manage_reports"><?php echo __('manage_reports'); ?></a></li>
         </ul>
-    </div>
-    <div id="mainContent">
+    </aside>
+    
+    <!-- Contenido principal del panel -->
+    <main id="admin-content">
         <?php
-        // Despliegue del panel principal si no se especifica otra acción.
-        if ($actionMode === 'dashboard') {
+        // Página de bienvenida predeterminada
+        if ($accion === 'dashboard') {
             echo "<h2>" . __('admin_dashboard_title') . "</h2>";
             echo "<p>Bienvenido al panel de administración.</p>";
         }
-        
+
         // Gestión de usuarios
-        if ($actionMode === 'manage_users') {
+        if ($accion === 'manage_users') {
             echo "<h2>" . __('manage_users') . "</h2>";
-            if (isset($errorMsg)) {
-                echo "<p style='color:red;'>$errorMsg</p>";
+            if (isset($errorUsuario)) {
+                echo "<p class='error'>" . $errorUsuario . "</p>";
             }
-            
-            $usersQuery = $dbConnection->query("SELECT * FROM users ORDER BY created_at DESC");
-            $usersList = $usersQuery->fetchAll(PDO::FETCH_ASSOC);
-            if ($usersList) {
-                echo "<table class='dataTable'>";
+            $consultaUsuarios = $conexionDB->query("SELECT * FROM users ORDER BY created_at DESC");
+            $listaUsuarios = $consultaUsuarios->fetchAll(PDO::FETCH_ASSOC);
+            if ($listaUsuarios) {
+                echo "<table class='data-table'>";
                 echo "<tr><th>ID</th><th>" . __('username') . "</th><th>" . __('name') . "</th><th>" . __('email') . "</th><th>" . __('created_at') . "</th><th>" . __('actions') . "</th></tr>";
-                foreach ($usersList as $user) {
+                foreach ($listaUsuarios as $usuario) {
                     echo "<tr>";
-                    echo "<td>" . htmlspecialchars($user['id']) . "</td>";
-                    echo "<td>" . htmlspecialchars($user['username']) . "</td>";
-                    echo "<td>" . htmlspecialchars($user['name']) . "</td>";
-                    echo "<td>" . htmlspecialchars($user['email']) . "</td>";
-                    echo "<td>" . htmlspecialchars($user['created_at']) . "</td>";
+                    echo "<td>" . htmlspecialchars($usuario['id']) . "</td>";
+                    echo "<td>" . htmlspecialchars($usuario['username']) . "</td>";
+                    echo "<td>" . htmlspecialchars($usuario['name']) . "</td>";
+                    echo "<td>" . htmlspecialchars($usuario['email']) . "</td>";
+                    echo "<td>" . htmlspecialchars($usuario['created_at']) . "</td>";
                     echo "<td>";
-                    echo "<a href='admin.php?action=edit_user&id=" . $user['id'] . "'>Edit</a> | ";
-                    if ($user['username'] !== 'jocarsa') {
-                        echo "<a href='admin.php?action=delete_user&id=" . $user['id'] . "' onclick=\"return confirm('¿Confirma la eliminación?');\">Delete</a>";
+                    echo "<a href='admin.php?action=edit_user&id=" . $usuario['id'] . "'>Edit</a> | ";
+                    if ($usuario['username'] !== 'jocarsa') {
+                        echo "<a href='admin.php?action=delete_user&id=" . $usuario['id'] . "' onclick=\"return confirm('¿Confirmar eliminación?');\">Delete</a>";
                     }
                     echo "</td>";
                     echo "</tr>";
@@ -322,7 +253,7 @@ if ($actionMode === 'edit_user' && isset($_GET['id'])) {
             } else {
                 echo "<p>No se encontraron usuarios.</p>";
             }
-            echo "<h3>Agrega un Nuevo Usuario</h3>";
+            echo "<h3>Agregar Nuevo Usuario</h3>";
             ?>
             <form method="post" action="admin.php?action=add_user">
                 <p><input type="text" name="username" placeholder="<?php echo __('username_placeholder'); ?>" required></p>
@@ -332,34 +263,35 @@ if ($actionMode === 'edit_user' && isset($_GET['id'])) {
                 <p><input type="submit" value="Add User"></p>
             </form>
             <?php
-        } elseif ($actionMode === 'edit_user' && isset($userToEdit)) {
+        } elseif ($accion === 'edit_user' && isset($usuarioEditar)) {
             ?>
             <h2>Edit User</h2>
-            <form method="post" action="admin.php?action=edit_user&id=<?php echo $userToEdit['id']; ?>">
-                <p><input type="text" name="username" value="<?php echo htmlspecialchars($userToEdit['username']); ?>" required></p>
+            <form method="post" action="admin.php?action=edit_user&id=<?php echo $usuarioEditar['id']; ?>">
+                <p><input type="text" name="username" value="<?php echo htmlspecialchars($usuarioEditar['username']); ?>" required></p>
                 <p><input type="password" name="password" placeholder="<?php echo __('password_placeholder'); ?>" required></p>
-                <p><input type="text" name="name" value="<?php echo htmlspecialchars($userToEdit['name']); ?>" required></p>
-                <p><input type="email" name="email" value="<?php echo htmlspecialchars($userToEdit['email']); ?>" required></p>
+                <p><input type="text" name="name" value="<?php echo htmlspecialchars($usuarioEditar['name']); ?>" required></p>
+                <p><input type="email" name="email" value="<?php echo htmlspecialchars($usuarioEditar['email']); ?>" required></p>
                 <p><input type="submit" value="Update User"></p>
             </form>
             <?php
-        } elseif ($actionMode === 'manage_reports') {
+        }
+        // Gestión de reportes
+        if ($accion === 'manage_reports') {
             echo "<h2>" . __('manage_reports') . "</h2>";
-            $reportStmt = $dbConnection->query("SELECT r.*, u.username FROM reports r LEFT JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC");
-            $reportsList = $reportStmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            if ($reportsList) {
-                echo "<table class='dataTable'>";
+            $consultaReportes = $conexionDB->query("SELECT r.*, u.username FROM reports r LEFT JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC");
+            $listaReportes = $consultaReportes->fetchAll(PDO::FETCH_ASSOC);
+            if ($listaReportes) {
+                echo "<table class='data-table'>";
                 echo "<tr><th>ID</th><th>" . __('url') . "</th><th>" . __('user') . "</th><th>" . __('created_at') . "</th><th>" . __('actions') . "</th></tr>";
-                foreach ($reportsList as $report) {
+                foreach ($listaReportes as $reporte) {
                     echo "<tr>";
-                    echo "<td>" . htmlspecialchars($report['id']) . "</td>";
-                    echo "<td>" . htmlspecialchars($report['url']) . "</td>";
-                    echo "<td>" . htmlspecialchars($report['username']) . "</td>";
-                    echo "<td>" . htmlspecialchars($report['created_at']) . "</td>";
+                    echo "<td>" . htmlspecialchars($reporte['id']) . "</td>";
+                    echo "<td>" . htmlspecialchars($reporte['url']) . "</td>";
+                    echo "<td>" . htmlspecialchars($reporte['username']) . "</td>";
+                    echo "<td>" . htmlspecialchars($reporte['created_at']) . "</td>";
                     echo "<td>";
-                    echo "<a href='admin.php?action=view_report&id=" . $report['id'] . "'>View</a> | ";
-                    echo "<a href='admin.php?action=delete_report&id=" . $report['id'] . "' onclick=\"return confirm('¿Confirmar eliminación?');\">Delete</a>";
+                    echo "<a href='admin.php?action=view_report&id=" . $reporte['id'] . "'>View</a> | ";
+                    echo "<a href='admin.php?action=delete_report&id=" . $reporte['id'] . "' onclick=\"return confirm('¿Confirmar eliminación?');\">Delete</a>";
                     echo "</td>";
                     echo "</tr>";
                 }
@@ -367,26 +299,21 @@ if ($actionMode === 'edit_user' && isset($_GET['id'])) {
             } else {
                 echo "<p>No reports found.</p>";
             }
-        } elseif ($actionMode === 'view_report' && isset($_GET['id'])) {
-            $repId = intval($_GET['id']);
-            $stmt = $dbConnection->prepare("SELECT r.*, u.username FROM reports r LEFT JOIN users u ON r.user_id = u.id WHERE r.id = :id");
-            $stmt->execute([':id' => $repId]);
-            $reportData = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($reportData) {
+        } elseif ($accion === 'view_report' && isset($_GET['id'])) {
+            $idReporte = intval($_GET['id']);
+            $consultaReporte = $conexionDB->prepare("SELECT r.*, u.username FROM reports r LEFT JOIN users u ON r.user_id = u.id WHERE r.id = :id");
+            $consultaReporte->execute([':id' => $idReporte]);
+            $detalleReporte = $consultaReporte->fetch(PDO::FETCH_ASSOC);
+            if ($detalleReporte) {
                 echo "<h2>Report Details</h2>";
-                echo "<p><strong>" . __('url') . ":</strong> " . htmlspecialchars($reportData['url']) . "</p>";
-                echo "<p><strong>User:</strong> " . htmlspecialchars($reportData['username']) . "</p>";
-                echo "<p><strong>" . __('created_at') . ":</strong> " . htmlspecialchars($reportData['created_at']) . "</p>";
-                echo $reportData['report_html'];
+                echo "<p><strong>" . __('url') . ":</strong> " . htmlspecialchars($detalleReporte['url']) . "</p>";
+                echo "<p><strong>User:</strong> " . htmlspecialchars($detalleReporte['username']) . "</p>";
+                echo "<p><strong>" . __('created_at') . ":</strong> " . htmlspecialchars($detalleReporte['created_at']) . "</p>";
+                echo $detalleReporte['report_html'];
                 echo "<p><a href='admin.php?action=manage_reports'>" . __('back_to_reports') . "</a></p>";
             }
-        } else {
-            // Pantalla por defecto del panel de administración
-            echo "<h2>" . __('admin_dashboard_title') . "</h2>";
-            echo "<p>Bienvenido al panel de administración.</p>";
         }
         ?>
-    </div>
-</div>
+    </main>
 </body>
 </html>
