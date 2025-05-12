@@ -6,18 +6,18 @@
  * Gestiona el login de usuarios, la generación de reportes de auditoría web (usando la clase DeepPink)
  * y la visualización/eliminación de reportes guardados.
  *
- * Se emplea la función authenticateUser() definida en "authenticateUser.php" para verificar
- * las credenciales. En caso de error, se muestra el mensaje "Usuario o contraseña incorrectos"
- * en rojo en el formulario de login, sin redirigir al dashboard.
+ * Se utiliza la función authenticateUser() (en "authenticateUser.php") para verificar
+ * las credenciales del usuario. Si las credenciales son incorrectas, se muestra en el formulario
+ * de login el mensaje "Usuario o contraseña incorrectos" en rojo, sin redirigir al dashboard.
  *
- * Los estilos se cargan desde "css/style.css".
+ * Todos los estilos se cargan desde "css/style.css".
  */
 
 session_start();
 require_once 'i18n.php';
 
 try {
-    // Conexión a la base de datos SQLite e inicialización de las tablas necesarias.
+    // Conexión a la base de datos SQLite e inicialización de tablas si no existen.
     $pdo = new PDO('sqlite:db.sqlite');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -55,34 +55,35 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 
 /**
- * Proceso de autenticación.
+ * Proceso de autenticación:
  * Si el usuario no ha iniciado sesión, se muestra el formulario de login.
  * Se utiliza la función authenticateUser() (definida en "authenticateUser.php") para la verificación.
- * En caso de que las credenciales sean incorrectas, se muestra el mensaje de error en rojo.
+ * En caso de que las credenciales sean incorrectas, se asigna el mensaje de error para mostrarlo en el formulario.
  */
 if (!isset($_SESSION['logged_in'])) {
     if (isset($_POST['login'])) {
         $loginUser = trim($_POST['username']);
         $loginPass = trim($_POST['password']);
+
         if (isset($_POST['lang'])) {
             $_SESSION['language'] = $_POST['lang'];
-            require_once 'i18n.php'; // Actualiza el idioma activo.
+            require_once 'i18n.php';
         }
         require_once 'authenticateUser.php';
         $user = authenticateUser($loginUser, $loginPass);
         if ($user) {
-            // Credenciales válidas: se almacenan los datos en la sesión y se redirige.
+            // Credenciales válidas: se guardan los datos en la sesión y se redirige.
             $_SESSION['logged_in'] = true;
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             header("Location: index.php");
             exit;
         } else {
-            // Si la autenticación falla, no se redirige y se define un mensaje de error.
+            // Si la autenticación falla, se asigna el mensaje de error para mostrarlo en el login.
             $loginError = "Usuario o contraseña incorrectos";
         }
     }
-    // Si no se ha iniciado sesión o si la autenticación falló, se muestra el formulario de login.
+    // Mostrar el formulario de login si el usuario no está autenticado.
     ?>
     <!doctype html>
     <html>
@@ -95,7 +96,7 @@ if (!isset($_SESSION['logged_in'])) {
         <div class="login-panel">
             <h2><?php echo __('login_title'); ?></h2>
             <?php
-            // Se muestra el mensaje de error en rojo (estilos en CSS definen .error en color rojo).
+            // Se muestra el mensaje de error únicamente en el bloque del login.
             if (isset($loginError)) {
                 echo "<p class='error'>{$loginError}</p>";
             }
@@ -120,8 +121,7 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 
-// Una vez que el usuario se autentica, se continúa con el dashboard.
-// Se utiliza el operador null coalescing para evitar warnings en caso de que 'user_id' no esté definido.
+// Si el usuario ya se ha autenticado, se continúa con el dashboard.
 $userId = $_SESSION['user_id'] ?? 0;
 
 /**
