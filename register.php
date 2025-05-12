@@ -3,19 +3,19 @@
  * register.php
  *
  * Archivo de registro para nuevos usuarios.
- * Permite crear una nueva cuenta si el nombre de usuario no existe aún en la base de datos.
- * Los elementos visuales se cargan a través del archivo "css/register.css".
+ * Permite crear una cuenta (previa verificación de que el nombre de usuario no exista)
+ * y almacena la contraseña de forma segura utilizando password_hash().
+ * 
+ * Los estilos se cargan desde "css/register.css".
  */
 
 session_start();
 require_once 'i18n.php';
 
 try {
-    // Conexión a la base de datos SQLite y configuración de errores.
+    // Conexión a la base de datos SQLite y creación de la tabla de usuarios (si no existe).
     $connection = new PDO('sqlite:db.sqlite');
     $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Creación de la tabla de usuarios, en caso de que no esté creada.
     $connection->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -24,14 +24,14 @@ try {
         email TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
-} catch (PDOException $exc) {
-    die("Error en la conexión o inicialización de la base de datos: " . $exc->getMessage());
+} catch (PDOException $e) {
+    die("Error en la conexión o inicialización de la base de datos: " . $e->getMessage());
 }
 
 /**
- * Proceso de registro:
- * Si se envía el formulario mediante POST, se extraen los datos y se verifica si el nombre de usuario
- * ya existe. Si no existe, se registra el nuevo usuario en la base de datos.
+ * Proceso de registro de usuario.
+ * Se verifica que el nombre de usuario no exista; en caso afirmativo, se genera un hash para la contraseña
+ * (usando PASSWORD_DEFAULT) y se almacena en la base de datos.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newUsername = trim($_POST['username']);
@@ -39,23 +39,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newName     = trim($_POST['name']);
     $newEmail    = trim($_POST['email']);
     
-    // Se consulta la base de datos para confirmar que el usuario no exista.
+    // Verifica si el usuario ya existe
     $checkStmt = $connection->prepare("SELECT id FROM users WHERE username = :username");
     $checkStmt->execute([':username' => $newUsername]);
     
     if ($checkStmt->fetch()) {
-        // Si se encuentra un registro, se informa al usuario.
         $errorRegister = __('username_exists');
     } else {
-        // Inserción del nuevo usuario en la tabla 'users'.
-        $insertStmt = $connection->prepare("INSERT INTO users (username, password, name, email) VALUES (:username, :password, :name, :email)");
+        // Se genera el hash seguro de la contraseña.
+        $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        $insertStmt = $connection->prepare("INSERT INTO users (username, password, name, email) 
+                                              VALUES (:username, :password, :name, :email)");
         $insertStmt->execute([
             ':username' => $newUsername,
-            ':password' => $newPassword, // En producción, se recomienda utilizar un hash.
+            ':password' => $passwordHash,
             ':name'     => $newName,
             ':email'    => $newEmail
         ]);
-        // Redirige al login tras el registro exitoso.
         header("Location: index.php");
         exit;
     }
@@ -66,16 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <title><?php echo __('register_page_title'); ?></title>
-    <!-- Se utiliza el CSS exclusivo para la página de registro -->
     <link rel="stylesheet" href="css/register.css">
 </head>
 <body>
     <div class="register-panel">
         <h2><?php echo __('register_title'); ?></h2>
         <?php 
-            // Mostramos el mensaje de error si el usuario ya existe.
             if (isset($errorRegister)) {
-                echo "<p class='error'>" . $errorRegister . "</p>";
+                echo "<p class='error'>{$errorRegister}</p>";
             } 
         ?>
         <form method="post" action="register.php">
