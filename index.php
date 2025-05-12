@@ -3,23 +3,21 @@
  * index.php
  *
  * Página principal de la aplicación.
- * Gestiona el login de usuarios, la generación de reportes de auditoría web (usando la clase DeepPink),
- * así como la visualización y eliminación de reportes almacenados.
+ * Gestiona el login de usuarios, la generación de reportes de auditoría web (por medio de la clase DeepPink)
+ * y la visualización/eliminación de reportes guardados.
  *
- * Todos los estilos visuales se cargan desde "css/style.css".
- *
- * NOTA: Para evitar warnings de "Undefined array key 'user_id'", se utiliza el operador null coalescing (??)
- * al referenciar $_SESSION['user_id'].
+ * Se verifica la contraseña de forma segura usando password_verify().
+ * Los estilos se cargan desde "css/style.css".
  */
 
 session_start();
 require_once 'i18n.php';
 
 try {
-    // Conexión a la base de datos SQLite y creación de tablas si no existen.
+    // Conexión a la base de datos SQLite e inicialización de las tablas necesarias.
     $pdo = new PDO('sqlite:db.sqlite');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
+
     // Tabla de usuarios.
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +41,7 @@ try {
 }
 
 /**
- * Proceso de cierre de sesión.
+ * Proceso de cierre de sesión: se limpia la sesión y se redirige al login.
  */
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     unset($_SESSION['logged_in']);
@@ -54,8 +52,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 
 /**
- * Proceso de autenticación.
+ * Proceso de autenticación:
  * Si el usuario no ha iniciado sesión, se muestra el formulario de login.
+ * Se utiliza password_verify() para validar la contraseña de forma segura.
  */
 if (!isset($_SESSION['logged_in'])) {
     if (isset($_POST['login'])) {
@@ -69,10 +68,10 @@ if (!isset($_SESSION['logged_in'])) {
         $stmt->execute([':username' => $loginUser]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Se compara la contraseña (en este ejemplo, en texto plano).
-        if ($user && $user['password'] === $loginPass) {
+        // Verifica la contraseña usando password_verify().
+        if ($user && password_verify($loginPass, $user['password'])) {
             $_SESSION['logged_in'] = true;
-            $_SESSION['user_id'] = $user['id'];  // Aquí se define la clave user_id.
+            $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             header("Location: index.php");
             exit;
@@ -80,7 +79,7 @@ if (!isset($_SESSION['logged_in'])) {
             $loginError = __('invalid_credentials');
         }
     } else {
-        // Muestra el formulario de login si no hay envío.
+        // Mostrar formulario de login.
         ?>
         <!doctype html>
         <html>
@@ -92,7 +91,7 @@ if (!isset($_SESSION['logged_in'])) {
         <body>
             <div class="login-panel">
                 <h2><?php echo __('login_title'); ?></h2>
-                <?php if (isset($loginError)) { echo "<p class='error'>$loginError</p>"; } ?>
+                <?php if (isset($loginError)) { echo "<p class='error'>{$loginError}</p>"; } ?>
                 <form method="post" action="index.php">
                     <input type="text" name="username" placeholder="<?php echo __('username_placeholder'); ?>" required>
                     <input type="password" name="password" placeholder="<?php echo __('password_placeholder'); ?>" required>
@@ -114,7 +113,7 @@ if (!isset($_SESSION['logged_in'])) {
     }
 }
 
-// Para evitar los warnings, se asigna un valor predeterminado usando el operador ??
+// Se asigna el user_id desde la sesión garantizando su existencia.
 $userId = $_SESSION['user_id'] ?? 0;
 
 /**
@@ -123,15 +122,14 @@ $userId = $_SESSION['user_id'] ?? 0;
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $reportId = intval($_GET['id']);
     $deleteStmt = $pdo->prepare("DELETE FROM reports WHERE id = :id AND user_id = :uid");
-    // Uso de $userId que se garantiza no lanza warning.
     $deleteStmt->execute([':id' => $reportId, ':uid' => $userId]);
     header("Location: index.php?tab=view_reports");
     exit;
 }
 
 /**
- * Generación del reporte.
- * Si se envía el formulario con 'report_action' igual a 'gen_report', se utiliza la clase DeepPink.
+ * Proceso de generación de reportes.
+ * Se utiliza la clase DeepPink para analizar la URL proporcionada y construir el reporte.
  */
 if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') {
     require_once 'DeepPink.php';
@@ -157,8 +155,8 @@ if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') 
     if (isset($_POST['save_report']) && $_POST['save_report'] === '1') {
         $saveStmt = $pdo->prepare("INSERT INTO reports (user_id, url, report_html) VALUES (:uid, :url, :report)");
         $saveStmt->execute([
-            ':uid' => $userId,
-            ':url' => $inputUrl,
+            ':uid'    => $userId,
+            ':url'    => $inputUrl,
             ':report' => $generatedReport
         ]);
         $reportFeedback = __('save_report') . " " . __('generated_report');
@@ -166,9 +164,13 @@ if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') 
 }
 
 /**
- * Consulta de reportes agrupados.
+ * Consulta de reportes agrupados para el usuario actual.
  */
-$groupStmt = $pdo->prepare("SELECT url, COUNT(*) AS total, MAX(created_at) AS last_date FROM reports WHERE user_id = :uid GROUP BY url ORDER BY last_date DESC");
+$groupStmt = $pdo->prepare("SELECT url, COUNT(*) AS total, MAX(created_at) AS last_date 
+                            FROM reports 
+                            WHERE user_id = :uid 
+                            GROUP BY url 
+                            ORDER BY last_date DESC");
 $groupStmt->execute([':uid' => $userId]);
 $reportsSummary = $groupStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -176,7 +178,6 @@ $allStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid ORDER BY cr
 $allStmt->execute([':uid' => $userId]);
 $allReports = $allStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Pestaña activa: por defecto 'new_report'.
 $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
 ?>
 <!doctype html>
@@ -206,7 +207,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
         <main id="dashboard-content">
             <?php
             if (isset($reportFeedback)) {
-                echo "<p class='feedback'>$reportFeedback</p>";
+                echo "<p class='feedback'>{$reportFeedback}</p>";
             }
             if ($currentTab === 'new_report') {
                 ?>
@@ -244,7 +245,7 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                         echo "</tr>";
                     }
                     echo "</table>";
-
+                    
                     if (isset($_GET['url'])) {
                         $targetUrl = $_GET['url'];
                         $detailStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid AND url = :url ORDER BY created_at DESC");
@@ -305,7 +306,9 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                             }
                         </style>
                         <script>
-                            window.onload = function() { window.print(); };
+                            window.onload = function() {
+                                window.print();
+                            };
                         </script>
                     </head>
                     <body>
