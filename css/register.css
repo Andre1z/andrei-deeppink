@@ -1,6 +1,8 @@
 /* css/register.css */
 
-/* ===== Reset y estilos globales ===== */
+/* Importa la fuente Montserrat */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -8,74 +10,71 @@
 }
 
 body {
-  font-family: 'Helvetica', sans-serif;
-  background-color: #f2f2f2;
-  color: #333;
+  font-family: 'Montserrat', sans-serif;
+  background-color: #f7f9fc;
+  color: #34495e;
   line-height: 1.6;
 }
 
-/* ===== Estilos para el panel de registro ===== */
+/* Panel de Registro */
 .register-panel {
   max-width: 400px;
-  margin: 60px auto;
-  padding: 20px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin: 80px auto;
+  padding: 30px;
+  background: #ffffff;
+  border: 1px solid #ecf0f1;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   text-align: center;
 }
 
 .register-panel h2 {
   font-size: 1.8rem;
   margin-bottom: 20px;
-  color: #333;
+  color: #00bcd4;
 }
 
-/* Entradas de texto y correo */
 .register-panel input[type="text"],
 .register-panel input[type="password"],
 .register-panel input[type="email"] {
-  width: 90%;
-  padding: 10px;
-  margin: 10px auto;
-  display: block;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #ccd1d9;
+  border-radius: 4px;
   font-size: 1rem;
 }
 
-/* Botón para enviar el formulario de registro */
 .register-panel input[type="submit"] {
-  width: 95%;
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   margin-top: 20px;
-  background-color: #0073aa;
+  background-color: #00bcd4;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   color: #fff;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 .register-panel input[type="submit"]:hover {
-  background-color: #005977;
+  background-color: #0097a7;
 }
 
-/* Enlaces y mensajes informativos */
 .register-panel p {
-  margin-top: 15px;
   font-size: 0.9rem;
-  color: #555;
+  color: #34495e;
+  margin-top: 15px;
 }
 
 .register-panel a {
   text-decoration: none;
-  color: #0073aa;
+  color: #00bcd4;
 }
 
-/* ===== Diseño responsivo ===== */
+/* Responsive */
 @media (max-width: 600px) {
   .register-panel {
     width: 90%;

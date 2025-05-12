@@ -1,6 +1,8 @@
 /* css/admin.css */
 
-/* ==== Reset y estilos globales ==== */
+/* Fuente moderna */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -8,149 +10,143 @@
 }
 
 body {
-  font-family: 'Helvetica', sans-serif;
-  background: #f7f7f7;
-  color: #333;
+  font-family: 'Montserrat', sans-serif;
+  background-color: #f7f9fc;
+  color: #34495e;
   line-height: 1.6;
 }
 
-/* ==== Estilos para la pantalla de login del administrador ==== */
+/* Pantalla de Login para el Admin */
 .login-container {
-  max-width: 320px;
+  max-width: 360px;
   margin: 100px auto;
-  padding: 20px;
-  background: #fff;
-  border: 1px solid #ddd;
+  padding: 30px;
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   text-align: center;
 }
 
 .login-container h2 {
-  margin-bottom: 20px;
   font-size: 1.8rem;
-  color: #333;
+  margin-bottom: 20px;
+  color: #00bcd4;
 }
 
 .login-container input[type="text"],
 .login-container input[type="password"] {
-  width: 90%;
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   margin: 10px 0;
-  border: 1px solid #ccc;
+  border: 1px solid #ccd1d9;
   border-radius: 4px;
   font-size: 1rem;
 }
 
 .login-container input[type="submit"] {
-  width: 95%;
-  padding: 10px;
-  margin-top: 10px;
-  background: #0073aa;
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background-color: #00bcd4;
   border: none;
   border-radius: 4px;
   color: #fff;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 .login-container input[type="submit"]:hover {
-  background: #005177;
+  background-color: #0097a7;
 }
 
 .error-msg {
-  color: #dc3545;
-  font-weight: bold;
+  color: #e74c3c;
+  font-weight: 700;
   margin-bottom: 10px;
   text-align: center;
 }
 
-/* ==== Estilos para el Dashboard del administrador ==== */
-
-/* Cabecera principal */
+/* Dashboard para Admin */
+/* Cabecera */
 #admin-header {
-  background: #23282d;
-  padding: 15px 25px;
+  background-color: #00bcd4;
+  padding: 20px 25px;
+  color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #fff;
 }
-
 #admin-header h1 {
-  font-size: 2rem;
+  font-size: 1.8rem;
+  font-weight: 700;
 }
-
 #admin-header nav a {
   color: #fff;
   text-decoration: none;
   font-size: 1rem;
 }
 
-/* Panel de navegación lateral */
+/* Navegación Lateral */
 #admin-nav {
   width: 220px;
-  background: #32373c;
+  background-color: #ffffff;
+  border-right: 2px solid #ecf0f1;
   padding: 20px;
-  color: #fff;
   float: left;
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 80px);
 }
-
 #admin-nav ul {
   list-style: none;
   padding: 0;
 }
-
 #admin-nav ul li {
   margin-bottom: 15px;
 }
-
 #admin-nav ul li a {
-  color: #fff;
+  color: #34495e;
   text-decoration: none;
   font-size: 1rem;
+  font-weight: 500;
 }
 
-/* Área de contenido principal */
+/* Contenido Principal */
 #admin-content {
   margin-left: 240px;
   padding: 20px;
-  background: #fff;
-  min-height: calc(100vh - 70px);
+  background: #ffffff;
+  min-height: calc(100vh - 80px);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-/* Estilos para las tablas de datos */
+/* Estilos para Tablas */
 .data-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 }
-
 .data-table th,
 .data-table td {
-  border: 1px solid #ddd;
-  padding: 10px;
+  border: 1px solid #ecf0f1;
+  padding: 12px;
   text-align: left;
 }
-
 .data-table tr:nth-child(even) {
-  background: #f9f9f9;
+  background-color: #f2f2f2;
 }
 
-/* ==== Diseño responsivo para pantallas pequeñas ==== */
+/* Responsive */
 @media (max-width: 768px) {
   #admin-nav {
     width: 100%;
     min-height: auto;
     float: none;
   }
-
   #admin-content {
     margin-left: 0;
   }
-
   #admin-header {
     flex-direction: column;
     text-align: center;
