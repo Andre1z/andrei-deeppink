@@ -1,0 +1,161 @@
+/* css/admin.css */
+
+/* Importación de la fuente Ubuntu desde Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap');
+
+/* ==== Reset y estilos globales ==== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Ubuntu', sans-serif;
+  background: #f7f7f7;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* ==== Estilos para la pantalla de login del administrador ==== */
+.login-container {
+  max-width: 320px;
+  margin: 100px auto;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.login-container h2 {
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.login-container input[type="text"],
+.login-container input[type="password"] {
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.login-container input[type="submit"] {
+  width: 95%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #0073aa;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-container input[type="submit"]:hover {
+  background: #005177;
+}
+
+.error-msg {
+  color: #dc3545;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* ==== Estilos para el Dashboard del administrador ==== */
+
+/* Cabecera principal */
+#admin-header {
+  background: #23282d;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+}
+
+#admin-header h1 {
+  font-size: 2rem;
+}
+
+#admin-header nav a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+/* Panel de navegación lateral */
+#admin-nav {
+  width: 220px;
+  background: #32373c;
+  padding: 20px;
+  color: #fff;
+  float: left;
+  min-height: calc(100vh - 70px);
+}
+
+#admin-nav ul {
+  list-style: none;
+  padding: 0;
+}
+
+#admin-nav ul li {
+  margin-bottom: 15px;
+}
+
+#admin-nav ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+/* Área de contenido principal */
+#admin-content {
+  margin-left: 240px;
+  padding: 20px;
+  background: #fff;
+  min-height: calc(100vh - 70px);
+}
+
+/* Estilos para las tablas de datos */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.data-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+/* ==== Diseño responsivo para pantallas pequeñas ==== */
+@media (max-width: 768px) {
+  #admin-nav {
+    width: 100%;
+    min-height: auto;
+    float: none;
+  }
+
+  #admin-content {
+    margin-left: 0;
+  }
+
+  #admin-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
