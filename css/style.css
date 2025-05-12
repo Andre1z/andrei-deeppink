@@ -1,8 +1,9 @@
 /* css/style.css */
 
-/* ============================ */
-/* Reset y estilos base         */
-/* ============================ */
+/* Importa la fuente Montserrat para un look moderno */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
+
+/* ===== Global Reset y Estilos Base ===== */
 * {
   margin: 0;
   padding: 0;
@@ -10,73 +11,78 @@
 }
 
 body {
-  font-family: 'Ubuntu', sans-serif;
-  background-color: #f2f2f2;
-  color: #444;
+  font-family: 'Montserrat', sans-serif;
+  background-color: #f7f9fc;  /* Fondo muy claro */
+  color: #34495e;            /* Gris oscuro para el texto */
   line-height: 1.6;
 }
 
-/* ============================ */
-/* Estilos para el Login        */
-/* ============================ */
+/* ===== Estilos para el Login ===== */
 .login-panel {
-  max-width: 350px;
-  margin: 80px auto;
-  padding: 20px;
-  background-color: #fff;
+  max-width: 360px;
+  margin: 100px auto;
+  padding: 30px;
+  background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .login-panel h2 {
-  font-size: 1.8rem;
   margin-bottom: 20px;
+  font-weight: 700;
+  color: #00bcd4;   /* Tono cian fresco */
 }
 
 .login-panel input[type="text"],
 .login-panel input[type="password"] {
-  width: 90%;
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   margin: 10px 0;
-  border: 1px solid #ddd;
+  border: 1px solid #ccd1d9;
   border-radius: 4px;
   font-size: 1rem;
 }
 
 .login-panel input[type="submit"] {
-  width: 95%;
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   margin-top: 15px;
-  background-color: #007BFF;
+  background-color: #00bcd4;
   border: none;
   border-radius: 4px;
   color: #fff;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 .login-panel input[type="submit"]:hover {
-  background-color: #0056b3;
+  background-color: #0097a7;
 }
 
 .login-panel select {
-  width: 95%;
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   margin: 10px 0;
-  border: 1px solid #ddd;
+  border: 1px solid #ccd1d9;
   border-radius: 4px;
   font-size: 1rem;
 }
 
-/* ============================ */
-/* Estilos del Dashboard        */
-/* ============================ */
+.error {
+  color: #e74c3c; /* Rojo brillante para errores */
+  margin-bottom: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ===== Estilos para el Dashboard ===== */
 
 /* Cabecera del Dashboard */
 #dashboard-header {
-  background-color: #23282d;
+  background-color: #00bcd4;
   color: #fff;
   padding: 20px;
   display: flex;
@@ -85,7 +91,8 @@ body {
 }
 
 #dashboard-header h1 {
-  font-size: 2rem;
+  font-size: 1.8rem;
+  font-weight: 700;
 }
 
 #dashboard-header a {
@@ -94,19 +101,19 @@ body {
   font-size: 1rem;
 }
 
-/* Contenedor general del Dashboard */
+/* Contenedor Principal del Dashboard */
 #dashboard-container {
   display: flex;
   min-height: calc(100vh - 80px);
   margin-top: 20px;
 }
 
-/* Menú lateral */
+/* Menú Lateral */
 #dashboard-nav {
-  flex: 0 0 220px;
-  background-color: #32373c;
+  width: 220px;
+  background-color: #ffffff;
+  border-right: 2px solid #ecf0f1;
   padding: 20px;
-  color: #fff;
 }
 
 #dashboard-nav ul {
@@ -118,24 +125,23 @@ body {
 }
 
 #dashboard-nav ul li a {
-  color: #fff;
+  color: #34495e;
   text-decoration: none;
   font-size: 1rem;
+  font-weight: 500;
 }
 
-/* Área de contenido principal */
+/* Área de Contenido */
 #dashboard-content {
   flex: 1;
   padding: 20px;
-  background-color: #fff;
+  background-color: #ffffff;
   margin: 0 20px;
-  border-radius: 4px;
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* ============================ */
-/* Estilos para tablas          */
-/* ============================ */
+/* ===== Estilos para Tablas ===== */
 .report-table {
   width: 100%;
   border-collapse: collapse;
@@ -144,50 +150,32 @@ body {
 
 .report-table th,
 .report-table td {
-  border: 1px solid #ddd;
-  padding: 10px;
+  border: 1px solid #ecf0f1;
+  padding: 12px;
   text-align: left;
 }
 
 .report-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: #f2f2f2;
 }
 
-/* ============================ */
-/* Mensajes e indicadores       */
-/* ============================ */
+/* ===== Mensajes y Indicadores ===== */
 .feedback {
-  color: #28a745;
+  color: #2ecc71;
   text-align: center;
   margin-bottom: 15px;
+  font-weight: 600;
 }
 
-.error {
-  color: #dc3545;
-  text-align: center;
-  margin-bottom: 15px;
-}
-
-/* ============================ */
-/* Botones y enlaces            */
-/* ============================ */
-input[type="submit"] {
-  cursor: pointer;
-}
-
-/* ============================ */
-/* Diseño Responsive            */
-/* ============================ */
+/* ===== Diseño Responsive ===== */
 @media (max-width: 768px) {
   #dashboard-container {
     flex-direction: column;
   }
-
   #dashboard-nav {
     width: 100%;
     margin-bottom: 20px;
   }
-
   #dashboard-content {
     margin: 0;
   }
