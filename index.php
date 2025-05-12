@@ -3,22 +3,25 @@
  * index.php
  *
  * Página principal de la aplicación.
- * Gestiona el login de usuarios, la generación de reportes de auditoría web (utilizando la clase DeepPink)
+ * Gestiona el login de usuarios, la generación de reportes de auditoría web (usando la clase DeepPink)
  * y la visualización/eliminación de reportes guardados.
  *
- * Se utiliza un archivo externo 'authenticateUser.php' para centralizar la verificación
- * de las credenciales de usuario (usando password_verify()). Todos los estilos se cargan desde "css/style.css".
+ * Se emplea la función authenticateUser() definida en "authenticateUser.php" para verificar
+ * las credenciales. En caso de error, se muestra el mensaje "Usuario o contraseña incorrectos"
+ * en rojo en el formulario de login, sin redirigir al dashboard.
+ *
+ * Los estilos se cargan desde "css/style.css".
  */
 
 session_start();
 require_once 'i18n.php';
 
 try {
-    // Conexión a la base de datos SQLite; se crean las tablas si no existen.
+    // Conexión a la base de datos SQLite e inicialización de las tablas necesarias.
     $pdo = new PDO('sqlite:db.sqlite');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Creación de la tabla de usuarios.
+    // Tabla de usuarios.
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -28,7 +31,7 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // Creación de la tabla de reportes.
+    // Tabla de reportes.
     $pdo->exec("CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -53,8 +56,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 
 /**
  * Proceso de autenticación.
- * Si el usuario aún no ha iniciado sesión, se muestra el formulario de login.
- * Se utiliza la función authenticateUser() definida en el archivo authenticateUser.php.
+ * Si el usuario no ha iniciado sesión, se muestra el formulario de login.
+ * Se utiliza la función authenticateUser() (definida en "authenticateUser.php") para la verificación.
+ * En caso de que las credenciales sean incorrectas, se muestra el mensaje de error en rojo.
  */
 if (!isset($_SESSION['logged_in'])) {
     if (isset($_POST['login'])) {
@@ -62,57 +66,62 @@ if (!isset($_SESSION['logged_in'])) {
         $loginPass = trim($_POST['password']);
         if (isset($_POST['lang'])) {
             $_SESSION['language'] = $_POST['lang'];
-            require_once 'i18n.php'; // Actualiza el idioma activo si fuera necesario.
+            require_once 'i18n.php'; // Actualiza el idioma activo.
         }
         require_once 'authenticateUser.php';
         $user = authenticateUser($loginUser, $loginPass);
         if ($user) {
-            // Las credenciales son válidas: se guarda la información en la sesión.
+            // Credenciales válidas: se almacenan los datos en la sesión y se redirige.
             $_SESSION['logged_in'] = true;
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             header("Location: index.php");
             exit;
         } else {
-            // La función authenticateUser ya imprime el error, pero asignamos una variable para usarla en el formulario.
-            $loginError = __('invalid_credentials');
+            // Si la autenticación falla, no se redirige y se define un mensaje de error.
+            $loginError = "Usuario o contraseña incorrectos";
         }
-    } else {
-        // No se ha enviado el formulario: se muestra el login.
-        ?>
-        <!doctype html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title><?php echo __('login_page_title'); ?></title>
-            <link rel="stylesheet" href="css/style.css">
-        </head>
-        <body>
-            <div class="login-panel">
-                <h2><?php echo __('login_title'); ?></h2>
-                <?php if (isset($loginError)) { echo "<p class='error'>{$loginError}</p>"; } ?>
-                <form method="post" action="index.php">
-                    <input type="text" name="username" placeholder="<?php echo __('username_placeholder'); ?>" required>
-                    <input type="password" name="password" placeholder="<?php echo __('password_placeholder'); ?>" required>
-                    <label for="lang"><?php echo __('select_language'); ?></label>
-                    <select name="lang" id="lang">
-                        <option value="en">English</option>
-                        <option value="es">Español</option>
-                        <option value="fr">Français</option>
-                        <option value="de">Deutsch</option>
-                    </select>
-                    <input type="submit" name="login" value="<?php echo __('login_button'); ?>">
-                </form>
-                <p><a href="register.php"><?php echo __('register_here'); ?></a></p>
-            </div>
-        </body>
-        </html>
-        <?php
-        exit;
     }
+    // Si no se ha iniciado sesión o si la autenticación falló, se muestra el formulario de login.
+    ?>
+    <!doctype html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title><?php echo __('login_page_title'); ?></title>
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body>
+        <div class="login-panel">
+            <h2><?php echo __('login_title'); ?></h2>
+            <?php
+            // Se muestra el mensaje de error en rojo (estilos en CSS definen .error en color rojo).
+            if (isset($loginError)) {
+                echo "<p class='error'>{$loginError}</p>";
+            }
+            ?>
+            <form method="post" action="index.php">
+                <input type="text" name="username" placeholder="<?php echo __('username_placeholder'); ?>" required>
+                <input type="password" name="password" placeholder="<?php echo __('password_placeholder'); ?>" required>
+                <label for="lang"><?php echo __('select_language'); ?></label>
+                <select name="lang" id="lang">
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                </select>
+                <input type="submit" name="login" value="<?php echo __('login_button'); ?>">
+            </form>
+            <p><a href="register.php"><?php echo __('register_here'); ?></a></p>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 
-// Se recupera el user_id desde la sesión (usando el operador null coalescing para evitar warnings).
+// Una vez que el usuario se autentica, se continúa con el dashboard.
+// Se utiliza el operador null coalescing para evitar warnings en caso de que 'user_id' no esté definido.
 $userId = $_SESSION['user_id'] ?? 0;
 
 /**
@@ -128,7 +137,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
 
 /**
  * Proceso de generación de reportes.
- * Se utiliza la clase DeepPink para analizar la URL dada por el usuario y construir un reporte.
+ * Se utiliza la clase DeepPink para analizar la URL ingresada y generar un reporte.
  */
 if (isset($_POST['report_action']) && $_POST['report_action'] === 'gen_report') {
     require_once 'DeepPink.php';
@@ -177,7 +186,6 @@ $allStmt = $pdo->prepare("SELECT * FROM reports WHERE user_id = :uid ORDER BY cr
 $allStmt->execute([':uid' => $userId]);
 $allReports = $allStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Se determina la pestaña activa (por defecto, "new_report").
 $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
 ?>
 <!doctype html>
@@ -279,7 +287,6 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     echo "<p>" . __('no_reports') . "</p>";
                 }
             }
-            // Vista detallada de un reporte individual.
             if (isset($_GET['action']) && $_GET['action'] === 'view' && isset($_GET['id'])) {
                 $repId = intval($_GET['id']);
                 $stmtRep = $pdo->prepare("SELECT * FROM reports WHERE id = :id AND user_id = :uid");
@@ -291,7 +298,6 @@ $currentTab = isset($_GET['tab']) ? $_GET['tab'] : 'new_report';
                     echo $singleReport['report_html'];
                 }
             }
-            // Vista de impresión: se abre en nueva ventana y se dispara window.print().
             if (isset($_GET['action']) && $_GET['action'] === 'print' && isset($_GET['id'])) {
                 $repId = intval($_GET['id']);
                 $stmtPrint = $pdo->prepare("SELECT * FROM reports WHERE id = :id AND user_id = :uid");
